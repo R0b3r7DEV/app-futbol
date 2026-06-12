@@ -74,12 +74,31 @@ async function loadStats(): Promise<{
   return { rows, byTeam };
 }
 
+/**
+ * Determina qué mercados tienen datos. Si ninguna selección tiene córners o
+ * disparos registrados (p. ej. la fuente openfootball, o aún no hay partidos),
+ * esos mercados se desactivan y solo se predice el 1X2.
+ */
+function availableMarkets(rows: TeamStatsRow[]): {
+  corners: boolean;
+  shots: boolean;
+} {
+  const corners = rows.some(
+    (r) => (r.avg_corners_for ?? 0) > 0 || (r.avg_corners_against ?? 0) > 0,
+  );
+  const shots = rows.some(
+    (r) => (r.avg_shots_for ?? 0) > 0 || (r.avg_shots_against ?? 0) > 0,
+  );
+  return { corners, shots };
+}
+
 /** Construye la predicción de un fixture concreto a partir de datos ya cargados. */
 function buildPrediction(
   fx: FixtureRow,
   teams: Map<number, MatchTeam>,
   stats: Map<number, TeamStatsRow>,
   league: LeagueAverages,
+  include: { corners: boolean; shots: boolean },
 ): MatchPrediction {
   const home =
     teams.get(fx.home_team_id) ?? unknownTeam(fx.home_team_id);
@@ -90,6 +109,7 @@ function buildPrediction(
     home: strengthFromStats(stats.get(fx.home_team_id), league),
     away: strengthFromStats(stats.get(fx.away_team_id), league),
     league,
+    include,
   });
 
   return { fixtureId: fx.id, kickoff: fx.kickoff, home, away, prediction };
@@ -124,7 +144,7 @@ export async function getFixturePrediction(
   const teams = await loadTeams([fx.home_team_id, fx.away_team_id]);
   const { rows, byTeam } = await loadStats();
   const league = leagueAveragesFromStats(rows);
-  return buildPrediction(fx, teams, byTeam, league);
+  return buildPrediction(fx, teams, byTeam, league, availableMarkets(rows));
 }
 
 /**
@@ -139,6 +159,7 @@ export async function getDayPredictions(date: string): Promise<DayResponse> {
     .from("fixtures")
     .select("id, kickoff, home_team_id, away_team_id")
     .eq("league_id", MUNDIAL.leagueId)
+    .eq("season", MUNDIAL.season)
     .gte("kickoff", start)
     .lt("kickoff", end)
     .order("kickoff", { ascending: true });
@@ -156,9 +177,10 @@ export async function getDayPredictions(date: string): Promise<DayResponse> {
   const teams = await loadTeams(teamIds);
   const { rows, byTeam } = await loadStats();
   const league = leagueAveragesFromStats(rows);
+  const include = availableMarkets(rows);
 
   const matches = fixtures
-    .map((fx) => buildPrediction(fx, teams, byTeam, league))
+    .map((fx) => buildPrediction(fx, teams, byTeam, league, include))
     // Mayor a menor confianza según la probabilidad del mercado destacado.
     .sort((a, b) => b.prediction.top.prob - a.prediction.top.prob);
 

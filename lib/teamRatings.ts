@@ -1,78 +1,72 @@
 // =============================================================================
-// Plantilla de ratings de las selecciones del Mundial 2026.
+// Ratings Elo de las 48 selecciones del Mundial 2026.
 // =============================================================================
-// RELLENAR MANUALMENTE ANTES DEL TORNEO:
-//   - `teamId`: id de la selección en API-Football. Búscalo con el endpoint
-//     /teams?search=<nombre> o míralo en una fixture ya ingestada (tabla teams).
-//     Mientras valga 0, el script de seed lo IGNORA y avisa.
-//   - `elo`: rating actualizado de https://eloratings.net (cópialo unos días
-//     antes del 11 de junio; los valores de aquí son orientativos).
-//   - `qual` (opcional): medias de goles a favor/en contra por partido en la
-//     clasificación + amistosos. Si lo dejas en null, se usa solo el Elo.
+// Los nombres COINCIDEN con los de la fuente de datos (openfootball / teams.name)
+// para poder cruzar el seeding por nombre, sin necesidad de teamId manual.
 //
-// El peso de mezcla Elo/datos reales se controla con BLEND en lib/seeding.ts.
+// Actualiza el `elo` desde https://eloratings.net unos días antes del torneo
+// (los valores aquí son orientativos). `qual` (opcional): medias de goles a
+// favor/en contra por partido en clasificación + amistosos; si es null, se usa
+// solo el Elo. El peso de mezcla está en BLEND (lib/seeding.ts).
 // =============================================================================
 
 import type { QualificationStats } from "./seeding";
 
 export interface TeamRating {
+  /** Nombre EXACTO como aparece en teams.name (inglés, openfootball). */
   name: string;
-  teamId: number; // 0 = pendiente de rellenar
   elo: number;
   qual?: QualificationStats | null;
 }
 
-/**
- * Las 48 selecciones (provisional). Actualiza Elo y rellena teamId antes del
- * torneo. Ordenadas aproximadamente por fuerza para facilitar la revisión.
- */
+/** Las 48 selecciones clasificadas (nombres de openfootball para el Mundial 2026). */
 export const TEAM_RATINGS: TeamRating[] = [
-  { name: "Argentina", teamId: 0, elo: 2105, qual: null },
-  { name: "Francia", teamId: 0, elo: 2055, qual: null },
-  { name: "España", teamId: 0, elo: 2045, qual: null },
-  { name: "Brasil", teamId: 0, elo: 1995, qual: null },
-  { name: "Inglaterra", teamId: 0, elo: 1985, qual: null },
-  { name: "Portugal", teamId: 0, elo: 1975, qual: null },
-  { name: "Países Bajos", teamId: 0, elo: 1960, qual: null },
-  { name: "Bélgica", teamId: 0, elo: 1940, qual: null },
-  { name: "Alemania", teamId: 0, elo: 1930, qual: null },
-  { name: "Croacia", teamId: 0, elo: 1885, qual: null },
-  { name: "Uruguay", teamId: 0, elo: 1900, qual: null },
-  { name: "Colombia", teamId: 0, elo: 1865, qual: null },
-  { name: "Noruega", teamId: 0, elo: 1845, qual: null },
-  { name: "Marruecos", teamId: 0, elo: 1840, qual: null },
-  { name: "Suiza", teamId: 0, elo: 1820, qual: null },
-  { name: "Japón", teamId: 0, elo: 1820, qual: null },
-  { name: "Turquía", teamId: 0, elo: 1815, qual: null },
-  { name: "Dinamarca", teamId: 0, elo: 1810, qual: null },
-  { name: "Senegal", teamId: 0, elo: 1800, qual: null },
-  { name: "Estados Unidos", teamId: 0, elo: 1800, qual: null },
-  { name: "México", teamId: 0, elo: 1790, qual: null },
-  { name: "Austria", teamId: 0, elo: 1790, qual: null },
-  { name: "Ecuador", teamId: 0, elo: 1780, qual: null },
-  { name: "Grecia", teamId: 0, elo: 1780, qual: null },
-  { name: "Serbia", teamId: 0, elo: 1770, qual: null },
-  { name: "Ucrania", teamId: 0, elo: 1770, qual: null },
-  { name: "Irán", teamId: 0, elo: 1760, qual: null },
-  { name: "Corea del Sur", teamId: 0, elo: 1760, qual: null },
-  { name: "Polonia", teamId: 0, elo: 1750, qual: null },
-  { name: "Nigeria", teamId: 0, elo: 1750, qual: null },
-  { name: "Argelia", teamId: 0, elo: 1750, qual: null },
-  { name: "Canadá", teamId: 0, elo: 1740, qual: null },
-  { name: "Egipto", teamId: 0, elo: 1740, qual: null },
-  { name: "Australia", teamId: 0, elo: 1720, qual: null },
-  { name: "Costa de Marfil", teamId: 0, elo: 1720, qual: null },
-  { name: "Perú", teamId: 0, elo: 1715, qual: null },
-  { name: "Chile", teamId: 0, elo: 1715, qual: null },
-  { name: "Paraguay", teamId: 0, elo: 1700, qual: null },
-  { name: "Camerún", teamId: 0, elo: 1700, qual: null },
-  { name: "Túnez", teamId: 0, elo: 1685, qual: null },
-  { name: "Ghana", teamId: 0, elo: 1680, qual: null },
-  { name: "Catar", teamId: 0, elo: 1660, qual: null },
-  { name: "Costa Rica", teamId: 0, elo: 1660, qual: null },
-  { name: "Arabia Saudí", teamId: 0, elo: 1640, qual: null },
-  { name: "Panamá", teamId: 0, elo: 1640, qual: null },
-  { name: "Sudáfrica", teamId: 0, elo: 1620, qual: null },
-  { name: "Uzbekistán", teamId: 0, elo: 1600, qual: null },
-  { name: "Nueva Zelanda", teamId: 0, elo: 1500, qual: null },
+  { name: "Argentina", elo: 2105 },
+  { name: "France", elo: 2055 },
+  { name: "Spain", elo: 2050 },
+  { name: "Brazil", elo: 1995 },
+  { name: "England", elo: 1985 },
+  { name: "Portugal", elo: 1975 },
+  { name: "Netherlands", elo: 1960 },
+  { name: "Belgium", elo: 1935 },
+  { name: "Germany", elo: 1930 },
+  { name: "Croatia", elo: 1885 },
+  { name: "Uruguay", elo: 1895 },
+  { name: "Colombia", elo: 1865 },
+  { name: "Norway", elo: 1845 },
+  { name: "Morocco", elo: 1840 },
+  { name: "Switzerland", elo: 1815 },
+  { name: "Japan", elo: 1815 },
+  { name: "Turkey", elo: 1815 },
+  { name: "Scotland", elo: 1790 },
+  { name: "Senegal", elo: 1800 },
+  { name: "USA", elo: 1795 },
+  { name: "Mexico", elo: 1790 },
+  { name: "Austria", elo: 1790 },
+  { name: "Ecuador", elo: 1780 },
+  { name: "Sweden", elo: 1765 },
+  { name: "Iran", elo: 1760 },
+  { name: "South Korea", elo: 1760 },
+  { name: "Algeria", elo: 1745 },
+  { name: "Egypt", elo: 1740 },
+  { name: "Czech Republic", elo: 1740 },
+  { name: "Canada", elo: 1735 },
+  { name: "Australia", elo: 1715 },
+  { name: "Ivory Coast", elo: 1715 },
+  { name: "Paraguay", elo: 1700 },
+  { name: "Bosnia & Herzegovina", elo: 1700 },
+  { name: "Tunisia", elo: 1685 },
+  { name: "Ghana", elo: 1680 },
+  { name: "DR Congo", elo: 1670 },
+  { name: "Qatar", elo: 1660 },
+  { name: "Saudi Arabia", elo: 1640 },
+  { name: "Panama", elo: 1640 },
+  { name: "South Africa", elo: 1620 },
+  { name: "Iraq", elo: 1620 },
+  { name: "Cape Verde", elo: 1610 },
+  { name: "Uzbekistan", elo: 1605 },
+  { name: "Jordan", elo: 1560 },
+  { name: "Curaçao", elo: 1560 },
+  { name: "New Zealand", elo: 1500 },
+  { name: "Haiti", elo: 1500 },
 ];

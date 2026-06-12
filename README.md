@@ -16,8 +16,19 @@ mayor probabilidad** de cada partido.
 - **Next.js 16** (App Router) + React + TypeScript
 - **Tailwind CSS v4**
 - **Supabase** (Postgres) — RLS con lectura pública; escritura solo desde backend
-- **API-Football** (api-sports.io) como fuente de datos
+- Fuente de datos (configurable con `DATA_SOURCE`): **openfootball** o **API-Football**
 - Tests con **Vitest**
+
+## Fuentes de datos
+
+| Fuente | `DATA_SOURCE` | Coste | Mundial 2026 | Mercados |
+| --- | --- | --- | --- | --- |
+| **openfootball** (worldcup.json) | `openfootball` | Gratis, sin clave ni límites | ✅ | Solo **1X2** (no hay córners/disparos) |
+| **API-Football** (api-sports.io) | `apifootball` | Free 100 req/día; **2026 de pago** | ⚠️ pago | 1X2 + **córners** + **disparos** |
+
+Cuando la fuente no trae córners/disparos, esos mercados **se desactivan solos** y
+el modelo predice únicamente el 1X2. Con API-Football y plan de pago tendrías los
+tres mercados completos.
 
 ---
 
@@ -65,23 +76,24 @@ Arranca con `npm run dev -- -H 0.0.0.0` y entra desde el móvil a
 Antes de la jornada 1 ningún equipo ha jugado en el torneo, así que el modelo se
 apoya en el **seeding pre-torneo** (Elo + datos de clasificación). Pasos:
 
-1. **Rellena los ratings.** Edita [`lib/teamRatings.ts`](lib/teamRatings.ts):
-   - Pon el `teamId` de cada selección (id de API-Football). Lo encuentras en la
-     tabla `teams` tras una ingesta, o con `/teams?search=<nombre>`.
+1. **Ingesta inicial** (equipos + calendario):
+   ```bash
+   npm run ingest
+   ```
+
+2. **Rellena los ratings.** Edita [`lib/teamRatings.ts`](lib/teamRatings.ts):
+   - El `name` debe coincidir **exactamente** con `teams.name` ya ingestado (el
+     seeding los cruza por nombre; no hace falta id manual).
    - Actualiza el `elo` desde [eloratings.net](https://eloratings.net) (los
      valores incluidos son orientativos).
    - Opcional: añade en `qual` las medias de goles a favor/en contra de la
      clasificación. Si lo dejas en `null`, se usa solo el Elo.
 
-2. **Ingesta inicial** (equipos + calendario):
-   ```bash
-   npm run ingest
-   ```
-
 3. **Siembra la fuerza inicial:**
    ```bash
-   npm run seed       # escribe seed_attack / seed_defense en team_stats
+   npm run seed       # cruza ratings↔equipos por nombre y escribe seed_attack/seed_defense
    ```
+   Si alguna selección no cruza, el script avisa con su nombre para que lo ajustes.
 
 4. **Arranca la app** (`npm run dev`) y abre el dashboard del día. Ya tienes
    predicciones para los primeros partidos basadas en el seeding.

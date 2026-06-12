@@ -134,22 +134,31 @@ export function predictMatch(input: PredictionInput): PredictionResult {
     league.shots,
   );
 
-  // --- 1X2 a partir de la matriz de goles ---
+  const incCorners = input.include?.corners ?? true;
+  const incShots = input.include?.shots ?? true;
+
+  // --- 1X2 a partir de la matriz de goles (siempre presente) ---
   const result1x2 = compareCounts(homeGoals, awayGoals);
-  // --- Córners: solo nos interesa quién hace más (sin "empate" como mercado) ---
-  const cornersCmp = compareCounts(homeCorners, awayCorners);
-  // --- Disparos ---
-  const shotsCmp = compareCounts(homeShots, awayShots);
 
   const markets: MarketProbability[] = [
     market("home", result1x2.home),
     market("draw", result1x2.draw),
     market("away", result1x2.away),
-    market("corners_home", cornersCmp.home),
-    market("corners_away", cornersCmp.away),
-    market("shots_home", shotsCmp.home),
-    market("shots_away", shotsCmp.away),
   ];
+
+  // --- Córners: solo nos interesa quién hace más (sin "empate" como mercado) ---
+  if (incCorners) {
+    const cornersCmp = compareCounts(homeCorners, awayCorners);
+    markets.push(market("corners_home", cornersCmp.home));
+    markets.push(market("corners_away", cornersCmp.away));
+  }
+
+  // --- Disparos ---
+  if (incShots) {
+    const shotsCmp = compareCounts(homeShots, awayShots);
+    markets.push(market("shots_home", shotsCmp.home));
+    markets.push(market("shots_away", shotsCmp.away));
+  }
 
   // Mercado de mayor probabilidad: la "apuesta más sólida".
   const top = markets.reduce((best, m) => (m.prob > best.prob ? m : best));

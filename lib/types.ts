@@ -59,6 +59,11 @@ export interface PredictionInput {
   league: LeagueAverages;
   /** Factor de ventaja de campo aplicado al lambda del local (≈1.15). */
   homeAdvantage?: number;
+  /**
+   * Mercados a incluir. Por defecto todos. Si la fuente de datos no tiene
+   * córners/disparos (p. ej. openfootball), se desactivan y solo queda 1X2.
+   */
+  include?: { corners?: boolean; shots?: boolean };
 }
 
 /** Probabilidad de un mercado concreto (0..1). */

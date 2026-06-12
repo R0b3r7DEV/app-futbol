@@ -17,11 +17,10 @@ import { MatchCard } from "@/components/MatchCard";
 const USE_MOCK = false;
 
 /**
- * Fecha a consultar. `null` = hoy (lo normal durante el torneo). Para la DEMO
- * con el Mundial 2022 la fijamos a una jornada real con datos ingestados.
- * Pon null cuando uses la temporada en curso.
+ * Fecha a consultar. `null` = hoy (lo normal durante el torneo). Útil fijarla a
+ * una fecha concreta para depurar o ver una jornada pasada.
  */
-const DEMO_DATE: string | null = "2022-11-26";
+const DEMO_DATE: string | null = null;
 
 export default function Page() {
   const [data, setData] = useState<DayResponse | null>(USE_MOCK ? MOCK_DAY : null);

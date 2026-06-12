@@ -1,16 +1,13 @@
 // =============================================================================
-// scripts/ingest.ts — sincroniza el Mundial desde API-Football a Supabase.
+// scripts/ingest.ts — sincroniza el Mundial a Supabase.
 // =============================================================================
-// Qué hace:
-//   1. Descarga equipos + fixtures del Mundial (league=1, season=2026).
-//   2. Upsert de teams y fixtures.
-//   3. Para los partidos finalizados (status FT) descarga sus estadísticas
-//      detalladas (córners, disparos, posesión) y recalcula team_stats.
+// Dos fuentes, según DATA_SOURCE en .env.local:
+//   - "apifootball" (por defecto): API-Football. Trae goles + córners + disparos
+//     (los partidos FT descargan estadísticas detalladas). Plan free: 100/día.
+//   - "openfootball": worldcup.json. Gratis y sin límites, pero solo goles +
+//     calendario (córners/disparos no; esos mercados se desactivan solos).
 //
-// Pensado para ejecutarse periódicamente (cron). Respeta la cuota: agrupa y solo
-// pide estadísticas de partidos FT que aún no tengamos completos.
-//
-// Uso:  npm run ingest
+// Pensado para ejecutarse periódicamente (cron).  Uso:  npm run ingest
 // =============================================================================
 
 import "../lib/loadEnv"; // debe ir el PRIMERO: carga .env.local antes que nada
@@ -23,12 +20,29 @@ import {
   sleep,
   type ApiFixture,
 } from "../lib/apiFootball";
+import { fetchOpenFootball } from "../lib/openFootball";
 
 /** Espaciado entre peticiones de estadísticas (ms) para respetar ~10/min. */
 const STATS_DELAY_MS = 7_000;
 
 async function main() {
   const db = supabaseAdmin();
+  const source = process.env.DATA_SOURCE ?? "apifootball";
+  console.log(`→ Fuente de datos: ${source} (temporada ${MUNDIAL.season})`);
+
+  if (source === "openfootball") {
+    await ingestOpenFootball(db);
+  } else {
+    await ingestApiFootball(db);
+  }
+
+  console.log("✔ Ingesta completada.");
+}
+
+// -----------------------------------------------------------------------------
+// Fuente API-Football (goles + córners + disparos)
+// -----------------------------------------------------------------------------
+async function ingestApiFootball(db: ReturnType<typeof supabaseAdmin>) {
   console.log("→ Descargando fixtures del Mundial…");
   const fixtures = await getFixtures(MUNDIAL.leagueId, MUNDIAL.season);
   console.log(`  ${fixtures.length} partidos recibidos.`);
@@ -36,9 +50,38 @@ async function main() {
   await upsertTeams(db, fixtures);
   await upsertFixtures(db, fixtures);
   await ingestFinishedStats(db, fixtures);
-  await recomputeTeamStats(db);
+  // Solo agregamos partidos con estadísticas completas (córners no nulos).
+  await recomputeTeamStats(db, true);
+}
 
-  console.log("✔ Ingesta completada.");
+// -----------------------------------------------------------------------------
+// Fuente openfootball (solo goles + calendario)
+// -----------------------------------------------------------------------------
+async function ingestOpenFootball(db: ReturnType<typeof supabaseAdmin>) {
+  console.log("→ Descargando worldcup.json…");
+  const { teams, fixtures } = await fetchOpenFootball();
+  console.log(`  ${teams.length} equipos, ${fixtures.length} partidos.`);
+
+  const { error: tErr } = await db.from("teams").upsert(teams);
+  if (tErr) throw tErr;
+
+  const rows = fixtures.map((f) => ({
+    id: f.id,
+    league_id: MUNDIAL.leagueId,
+    season: MUNDIAL.season,
+    kickoff: f.kickoff,
+    status: f.status,
+    home_team_id: f.homeId,
+    away_team_id: f.awayId,
+    home_goals: f.homeGoals,
+    away_goals: f.awayGoals,
+  }));
+  const { error: fErr } = await db.from("fixtures").upsert(rows);
+  if (fErr) throw fErr;
+  console.log(`  ${rows.length} fixtures sincronizados.`);
+
+  // Agregamos por goles (no hay córners/disparos en esta fuente).
+  await recomputeTeamStats(db, false);
 }
 
 /** Upsert de las selecciones que aparecen en los fixtures. */
@@ -138,17 +181,28 @@ async function ingestFinishedStats(
 }
 
 /**
- * Recalcula team_stats sumando todos los partidos FT con estadísticas. Conserva
- * las columnas de seeding (seed_attack/seed_defense) ya escritas.
+ * Recalcula team_stats sumando los partidos FT. Conserva las columnas de seeding
+ * (seed_attack/seed_defense) ya escritas.
+ * @param requireStats si true, solo agrega partidos con córners (datos completos
+ *   de API-Football); si false, agrega por goles (fuente openfootball).
  */
-async function recomputeTeamStats(db: ReturnType<typeof supabaseAdmin>) {
-  const { data: fxs, error } = await db
+async function recomputeTeamStats(
+  db: ReturnType<typeof supabaseAdmin>,
+  requireStats: boolean,
+) {
+  const base = db
     .from("fixtures")
     .select(
       "home_team_id, away_team_id, home_goals, away_goals, home_corners, away_corners, home_shots, away_shots",
     )
+    .eq("league_id", MUNDIAL.leagueId)
+    .eq("season", MUNDIAL.season)
     .eq("status", "FT")
-    .not("home_corners", "is", null);
+    .not("home_goals", "is", null);
+  // Con API-Football exigimos córners para no diluir las medias con ceros.
+  const { data: fxs, error } = requireStats
+    ? await base.not("home_corners", "is", null)
+    : await base;
   if (error) throw error;
 
   // Acumulador por equipo.
