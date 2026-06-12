@@ -13,8 +13,15 @@ import { MOCK_DAY } from "@/lib/mockData";
 import { fechaLarga } from "@/lib/format";
 import { MatchCard } from "@/components/MatchCard";
 
-/** ← Cambia a false para consumir el endpoint real en lugar de los datos mock. */
-const USE_MOCK = true;
+/** ← Cambia a true para volver a los datos de ejemplo (sin backend). */
+const USE_MOCK = false;
+
+/**
+ * Fecha a consultar. `null` = hoy (lo normal durante el torneo). Para la DEMO
+ * con el Mundial 2022 la fijamos a una jornada real con datos ingestados.
+ * Pon null cuando uses la temporada en curso.
+ */
+const DEMO_DATE: string | null = "2022-11-26";
 
 export default function Page() {
   const [data, setData] = useState<DayResponse | null>(USE_MOCK ? MOCK_DAY : null);
@@ -24,7 +31,10 @@ export default function Page() {
   useEffect(() => {
     if (USE_MOCK) return;
     let activo = true;
-    fetch("/api/predict/day")
+    const url = DEMO_DATE
+      ? `/api/predict/day?date=${DEMO_DATE}`
+      : "/api/predict/day";
+    fetch(url)
       .then((r) => r.json())
       .then((json: DayResponse & { error?: string }) => {
         if (!activo) return;

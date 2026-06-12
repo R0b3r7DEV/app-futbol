@@ -9,10 +9,7 @@
 // Es idempotente: volver a ejecutarlo reescribe el seeding con los Elo actuales.
 // =============================================================================
 
-import { config } from "dotenv";
-// Cargamos .env.local (donde Next.js espera las claves) y, como respaldo, .env.
-config({ path: ".env.local" });
-config();
+import "../lib/loadEnv"; // debe ir el PRIMERO: carga .env.local antes que nada
 import { supabaseAdmin } from "../lib/supabase";
 import { MUNDIAL } from "../lib/env";
 import { buildSeed } from "../lib/seeding";

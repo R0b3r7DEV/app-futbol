@@ -12,6 +12,16 @@ const BASE_URL = "https://v3.football.api-sports.io";
 /** Segundos de revalidación de caché para las llamadas (10 min). */
 const REVALIDATE_SECONDS = 600;
 
+/** Reintentos ante un 429 (límite de peticiones por minuto del plan gratuito). */
+const MAX_429_RETRIES = 3;
+/** Espera (ms) tras un 429 antes de reintentar (el plan gratuito limita ~10/min). */
+const RETRY_WAIT_MS = 65_000;
+
+/** Pausa asíncrona. */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 /** Realiza una petición GET a API-Football y devuelve el array `response`. */
 async function apiGet<T>(
   path: string,
@@ -23,27 +33,42 @@ async function apiGet<T>(
     url.searchParams.set(k, String(v));
   }
 
-  const res = await fetch(url, {
-    headers: { "x-apisports-key": key },
-    // En entorno Next esto cachea; en scripts (tsx) la opción se ignora.
-    next: { revalidate: REVALIDATE_SECONDS },
-  });
+  for (let intento = 0; ; intento++) {
+    const res = await fetch(url, {
+      headers: { "x-apisports-key": key },
+      // En entorno Next esto cachea; en scripts (tsx) la opción se ignora.
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
 
-  if (!res.ok) {
-    throw new Error(`API-Football ${path} respondió ${res.status}`);
+    // 429 = demasiadas peticiones por minuto. Esperamos y reintentamos.
+    if (res.status === 429 && intento < MAX_429_RETRIES) {
+      console.warn(
+        `  ⏳ Límite por minuto (429). Esperando ${RETRY_WAIT_MS / 1000}s y reintentando…`,
+      );
+      await sleep(RETRY_WAIT_MS);
+      continue;
+    }
+
+    if (!res.ok) {
+      throw new Error(`API-Football ${path} respondió ${res.status}`);
+    }
+
+    const json = (await res.json()) as {
+      errors?: unknown;
+      response?: T[];
+    };
+
+    // API-Football devuelve 200 con un objeto `errors` no vacío cuando algo falla
+    // (p. ej. cuota agotada o parámetros inválidos).
+    if (
+      json.errors &&
+      !Array.isArray(json.errors) &&
+      Object.keys(json.errors).length
+    ) {
+      throw new Error(`API-Football ${path}: ${JSON.stringify(json.errors)}`);
+    }
+    return json.response ?? [];
   }
-
-  const json = (await res.json()) as {
-    errors?: unknown;
-    response?: T[];
-  };
-
-  // API-Football devuelve 200 con un objeto `errors` no vacío cuando algo falla
-  // (p. ej. cuota agotada o parámetros inválidos).
-  if (json.errors && !Array.isArray(json.errors) && Object.keys(json.errors).length) {
-    throw new Error(`API-Football ${path}: ${JSON.stringify(json.errors)}`);
-  }
-  return json.response ?? [];
 }
 
 // -----------------------------------------------------------------------------

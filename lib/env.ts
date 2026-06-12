@@ -13,8 +13,12 @@ export function requireEnv(name: string): string {
   return value;
 }
 
-/** Configuración de la liga del Mundial 2026. */
+/**
+ * Configuración del torneo. La temporada es configurable por entorno
+ * (MUNDIAL_SEASON) para poder usar la demo de 2022 con el plan gratuito y
+ * cambiar a 2026 con un plan de pago sin tocar código.
+ */
 export const MUNDIAL = {
-  leagueId: 1,
-  season: 2026,
+  leagueId: Number(process.env.MUNDIAL_LEAGUE_ID ?? 1),
+  season: Number(process.env.MUNDIAL_SEASON ?? 2026),
 } as const;

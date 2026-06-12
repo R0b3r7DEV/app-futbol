@@ -85,15 +85,25 @@ export function strengthFromStats(
   const attackGoals = w * seedAttack + (1 - w) * realAttackGoals;
   const defenseGoals = w * seedDefense + (1 - w) * realDefenseGoals;
 
-  // --- Córners y disparos: solo datos reales (o neutro) ---
-  const attackCorners =
-    played > 0 ? ratioOrNeutral(stats.avg_corners_for, league.corners) : 1;
-  const defenseCorners =
-    played > 0 ? ratioOrNeutral(stats.avg_corners_against, league.corners) : 1;
-  const attackShots =
-    played > 0 ? ratioOrNeutral(stats.avg_shots_for, league.shots) : 1;
-  const defenseShots =
-    played > 0 ? ratioOrNeutral(stats.avg_shots_against, league.shots) : 1;
+  // --- Córners y disparos ---
+  // No hay seeding pre-torneo fiable, pero SÍ regularizamos hacia la media de la
+  // liga (multiplicador neutro = 1.0) con el mismo peso seedWeight. Esto evita
+  // que una sola muestra extrema (p. ej. 23 disparos en el primer partido)
+  // dispare los valores esperados. A los ~3 partidos manda el dato real.
+  const blendNeutral = (real: number) => w * 1 + (1 - w) * real;
+
+  const attackCorners = blendNeutral(
+    played > 0 ? ratioOrNeutral(stats.avg_corners_for, league.corners) : 1,
+  );
+  const defenseCorners = blendNeutral(
+    played > 0 ? ratioOrNeutral(stats.avg_corners_against, league.corners) : 1,
+  );
+  const attackShots = blendNeutral(
+    played > 0 ? ratioOrNeutral(stats.avg_shots_for, league.shots) : 1,
+  );
+  const defenseShots = blendNeutral(
+    played > 0 ? ratioOrNeutral(stats.avg_shots_against, league.shots) : 1,
+  );
 
   return {
     attackGoals,

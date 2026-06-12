@@ -13,18 +13,19 @@
 // Uso:  npm run ingest
 // =============================================================================
 
-import { config } from "dotenv";
-// Cargamos .env.local (donde Next.js espera las claves) y, como respaldo, .env.
-config({ path: ".env.local" });
-config();
+import "../lib/loadEnv"; // debe ir el PRIMERO: carga .env.local antes que nada
 import { supabaseAdmin } from "../lib/supabase";
 import { MUNDIAL } from "../lib/env";
 import {
   getFixtures,
   getFixtureStatistics,
   readStat,
+  sleep,
   type ApiFixture,
 } from "../lib/apiFootball";
+
+/** Espaciado entre peticiones de estadísticas (ms) para respetar ~10/min. */
+const STATS_DELAY_MS = 7_000;
 
 async function main() {
   const db = supabaseAdmin();
@@ -107,7 +108,10 @@ async function ingestFinishedStats(
   const pendientes = finished.filter((f) => !yaTienen.has(f.fixture.id));
   console.log(`  ${pendientes.length} partidos FT pendientes de estadísticas.`);
 
-  for (const f of pendientes) {
+  for (const [i, f] of pendientes.entries()) {
+    // Espaciamos las llamadas para no superar el límite por minuto del plan
+    // gratuito (~10/min). La primera no espera.
+    if (i > 0) await sleep(STATS_DELAY_MS);
     try {
       const stats = await getFixtureStatistics(f.fixture.id);
       const home = stats.find((s) => s.team.id === f.teams.home.id)?.statistics ?? [];
