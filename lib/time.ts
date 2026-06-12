@@ -65,3 +65,17 @@ export function appDayRangeUtc(dateStr: string): { start: string; end: string } 
 export function appToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: APP_TZ }).format(new Date());
 }
+
+/** Suma `n` días a una fecha "YYYY-MM-DD" (n puede ser negativo). */
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(`${dateStr}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Diferencia en días naturales entre dos fechas "YYYY-MM-DD" (a − b). */
+export function dayDiff(a: string, b: string): number {
+  const da = Date.parse(`${a}T00:00:00.000Z`);
+  const db = Date.parse(`${b}T00:00:00.000Z`);
+  return Math.round((da - db) / 86_400_000);
+}
