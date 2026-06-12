@@ -176,6 +176,28 @@ export const TEAM_ADJUSTMENTS = {
 };
 ```
 
+### Recálculo por alineaciones (los 11 titulares)
+
+Cuando salen los onces (~1h antes), puedes recalcular **solo ese partido** con los
+jugadores reales, en [`lib/lineups.ts`](lib/lineups.ts):
+
+- `KEY_PLAYERS` define los jugadores clave de cada selección y su **impacto**
+  (fracción de fuerza que se pierde si faltan; 0.12 ≈ −12%). Ya viene una lista de
+  arranque para las grandes; amplíala a tu gusto.
+- En `LINEUP_NEWS`, por **día y selección**, anota quién se cae del once. El factor
+  del partido = 1 − (suma de impactos de los ausentes). Un ausente no listado usa
+  un impacto pequeño por defecto.
+
+```ts
+export const LINEUP_NEWS = {
+  "2026-06-25": { France: ["Mbappé", "Tchouaméni"] },
+};
+```
+
+Verificado: con De Jong y Van Dijk fuera, Países Bajos pasó de favorito (38%) a
+31% y Japón se volvió favorito (39%). Solo hay que editar y recargar; no se
+reingesta ni se resiembra. Combina con `TEAM_ADJUSTMENTS` (se multiplican).
+
 ### Capa ML (no implementada, a propósito)
 
 Una capa **XGBoost** sobre el baseline Poisson *podría* mejorar las predicciones

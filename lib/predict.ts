@@ -8,7 +8,8 @@
 import { supabaseAdmin } from "./supabase";
 import { MUNDIAL } from "./env";
 import { predictMatch } from "./poissonModel";
-import { adjustStrength, adjustmentFor } from "./adjustments";
+import { adjustStrength, adjustmentFor, mergeAdjustments } from "./adjustments";
+import { lineupAdjustmentFor } from "./lineups";
 import {
   leagueAveragesFromStats,
   strengthFromStats,
@@ -123,9 +124,16 @@ function buildPrediction(
   const away =
     teams.get(fx.away_team_id) ?? unknownTeam(fx.away_team_id);
 
-  // Ajustes manuales por disponibilidad de plantilla (bajas, sanciones…).
-  const homeAdj = adjustmentFor(home.name);
-  const awayAdj = adjustmentFor(away.name);
+  // Ajustes por disponibilidad: a largo plazo (por selección) + por alineación
+  // del día (los 11 titulares de ESE partido). Se combinan.
+  const homeAdj = mergeAdjustments(
+    adjustmentFor(home.name),
+    lineupAdjustmentFor(home.name, fx.kickoff),
+  );
+  const awayAdj = mergeAdjustments(
+    adjustmentFor(away.name),
+    lineupAdjustmentFor(away.name, fx.kickoff),
+  );
 
   const prediction = predictMatch({
     home: adjustStrength(strengthFromStats(stats.get(fx.home_team_id), league), homeAdj),

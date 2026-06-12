@@ -62,3 +62,17 @@ export function adjustStrength(
 export function adjustmentFor(teamName: string): SquadAdjustment | undefined {
   return TEAM_ADJUSTMENTS[teamName];
 }
+
+/**
+ * Combina varios ajustes (p. ej. el de plantilla a largo plazo y el de la
+ * alineación del día): multiplica los factores y concatena las notas.
+ */
+export function mergeAdjustments(
+  ...adjs: (SquadAdjustment | undefined)[]
+): SquadAdjustment | undefined {
+  const presentes = adjs.filter((a): a is SquadAdjustment => !!a);
+  if (presentes.length === 0) return undefined;
+  const factor = presentes.reduce((acc, a) => acc * a.factor, 1);
+  const note = presentes.map((a) => a.note).filter(Boolean).join(" · ") || undefined;
+  return { factor, note };
+}
