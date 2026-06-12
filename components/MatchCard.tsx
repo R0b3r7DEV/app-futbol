@@ -40,6 +40,16 @@ export function MatchCard({ match, destacada = false }: Props) {
           <h3 className="font-heading text-xl font-semibold leading-tight text-text">
             {home.name} <span className="text-muted">vs</span> {away.name}
           </h3>
+          {match.adjustments?.home && (
+            <p className="mt-1 text-xs text-amber-400/90">
+              ⚠ {home.name}: {match.adjustments.home}
+            </p>
+          )}
+          {match.adjustments?.away && (
+            <p className="mt-1 text-xs text-amber-400/90">
+              ⚠ {away.name}: {match.adjustments.away}
+            </p>
+          )}
         </div>
 
         <div className="shrink-0 text-right">

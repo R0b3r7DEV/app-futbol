@@ -161,6 +161,21 @@ Detalle en [`lib/poissonModel.ts`](lib/poissonModel.ts).
   infravalora los empates de pocos goles (0-0, 1-1), frecuentes en selecciones; la
   corrección los ajusta y mejora la calibración del 1X2.
 
+### Ajustes por disponibilidad de plantilla (bajas/lesiones)
+
+No es lo mismo Francia con Mbappé que sin él, pero no hay un feed gratuito y
+fiable de alineaciones/bajas para 2026. Por eso hay una **capa manual** en
+[`lib/adjustments.ts`](lib/adjustments.ts): cuando sepas de una baja importante,
+añade una entrada con un `factor` (1.0 = plantilla completa; 0.90 ≈ pierde ~10%
+de fuerza) y un `note`. El modelo ajusta la fuerza de esa selección al instante
+(no hace falta reingestar ni resembrar) y la tarjeta del partido muestra el aviso.
+
+```ts
+export const TEAM_ADJUSTMENTS = {
+  "France": { factor: 0.90, note: "Sin Mbappé (lesión)" },
+};
+```
+
 ### Capa ML (no implementada, a propósito)
 
 Una capa **XGBoost** sobre el baseline Poisson *podría* mejorar las predicciones

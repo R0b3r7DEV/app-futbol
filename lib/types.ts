@@ -97,6 +97,8 @@ export interface MatchPrediction {
   home: MatchTeam;
   away: MatchTeam;
   prediction: PredictionResult;
+  /** Notas de ajustes manuales aplicados (bajas, etc.), si los hay. */
+  adjustments?: { home?: string | null; away?: string | null };
 }
 
 /** Respuesta del endpoint del día. */

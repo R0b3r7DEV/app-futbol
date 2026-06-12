@@ -8,6 +8,7 @@
 import { supabaseAdmin } from "./supabase";
 import { MUNDIAL } from "./env";
 import { predictMatch } from "./poissonModel";
+import { adjustStrength, adjustmentFor } from "./adjustments";
 import {
   leagueAveragesFromStats,
   strengthFromStats,
@@ -122,15 +123,24 @@ function buildPrediction(
   const away =
     teams.get(fx.away_team_id) ?? unknownTeam(fx.away_team_id);
 
+  // Ajustes manuales por disponibilidad de plantilla (bajas, sanciones…).
+  const homeAdj = adjustmentFor(home.name);
+  const awayAdj = adjustmentFor(away.name);
+
   const prediction = predictMatch({
-    home: strengthFromStats(stats.get(fx.home_team_id), league),
-    away: strengthFromStats(stats.get(fx.away_team_id), league),
+    home: adjustStrength(strengthFromStats(stats.get(fx.home_team_id), league), homeAdj),
+    away: adjustStrength(strengthFromStats(stats.get(fx.away_team_id), league), awayAdj),
     league,
     include,
     homeAdvantage: homeAdvantageFor(home.name),
   });
 
-  return { fixtureId: fx.id, kickoff: fx.kickoff, home, away, prediction };
+  const adjustments =
+    homeAdj?.note || awayAdj?.note
+      ? { home: homeAdj?.note ?? null, away: awayAdj?.note ?? null }
+      : undefined;
+
+  return { fixtureId: fx.id, kickoff: fx.kickoff, home, away, prediction, adjustments };
 }
 
 function unknownTeam(id: number): MatchTeam {
