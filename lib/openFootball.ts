@@ -53,20 +53,21 @@ function stableId(s: string): number {
 }
 
 /**
- * Construye el kickoff como ISO. Guardamos la HORA LOCAL de la sede tal cual,
- * anclando el componente de fecha UTC al DÍA OFICIAL del partido (el de
- * openfootball). Así "partidos de hoy" coincide con el calendario oficial de la
- * FIFA en lugar de descuadrarse por la zona horaria, y la hora mostrada (en UTC)
- * es la hora local de la sede que publican los horarios. Ej: "13:00 UTC-6" en
- * Ciudad de México → se muestra 13:00.
+ * Construye el kickoff como instante UTC REAL a partir de la fecha y la hora con
+ * offset de openfootball ("13:00 UTC-6"). UTC = hora_local − offset. Así el
+ * timestamp es correcto y luego se muestra/agrupa en la zona del usuario (España).
+ * Ej: "18:00 UTC-7" del 12/06 → 01:00 UTC del 13 → 03:00 en España.
  */
 export function parseKickoff(date: string, time?: string): string {
   if (!time) return `${date}T12:00:00.000Z`;
-  const m = time.match(/(\d{1,2}):(\d{2})/);
+  const m = time.match(/(\d{1,2}):(\d{2})\s*UTC([+-]\d{1,2})?/);
   if (!m) return `${date}T12:00:00.000Z`;
-  const hh = m[1].padStart(2, "0");
-  const mm = m[2];
-  return `${date}T${hh}:${mm}:00.000Z`;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  const off = m[3] ? Number(m[3]) : 0;
+  const d = new Date(`${date}T00:00:00.000Z`);
+  d.setUTCMinutes(d.getUTCMinutes() + hh * 60 + mm - off * 60);
+  return d.toISOString();
 }
 
 /**

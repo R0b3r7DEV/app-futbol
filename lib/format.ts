@@ -2,12 +2,9 @@
 // Utilidades de formato para la UI (español, zona horaria de España).
 // =============================================================================
 
-/**
- * Zona de formato. Usamos UTC porque guardamos el kickoff con la hora LOCAL de
- * la sede anclada al día oficial (ver lib/openFootball.parseKickoff): así la
- * hora mostrada es la local de la sede y el día cuadra con el calendario oficial.
- */
-const TZ = "UTC";
+// El kickoff se guarda como instante UTC real; lo mostramos en hora de España.
+import { APP_TZ } from "./time";
+const TZ = APP_TZ;
 
 /** Probabilidad 0..1 → entero de porcentaje (0..100). */
 export function pctValue(prob: number): number {

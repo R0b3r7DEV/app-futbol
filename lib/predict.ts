@@ -10,6 +10,7 @@ import { MUNDIAL } from "./env";
 import { predictMatch } from "./poissonModel";
 import { adjustStrength, adjustmentFor, mergeAdjustments } from "./adjustments";
 import { lineupAdjustmentFor } from "./lineups";
+import { appDayRangeUtc } from "./time";
 import {
   leagueAveragesFromStats,
   strengthFromStats,
@@ -159,13 +160,6 @@ function unknownTeam(id: number): MatchTeam {
   return { id, name: `Equipo ${id}` };
 }
 
-/** Rango UTC [date, date+1) para filtrar partidos de un día. */
-function dayRange(date: string): { start: string; end: string } {
-  const start = `${date}T00:00:00.000Z`;
-  const next = new Date(`${date}T00:00:00.000Z`);
-  next.setUTCDate(next.getUTCDate() + 1);
-  return { start, end: next.toISOString() };
-}
 
 /** Predicción de un único partido por id. */
 export async function getFixturePrediction(
@@ -193,7 +187,7 @@ export async function getFixturePrediction(
  */
 export async function getDayPredictions(date: string): Promise<DayResponse> {
   const db = supabaseAdmin();
-  const { start, end } = dayRange(date);
+  const { start, end } = appDayRangeUtc(date);
 
   const { data: fxData, error } = await db
     .from("fixtures")

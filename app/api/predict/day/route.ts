@@ -8,17 +8,13 @@
 import { NextResponse } from "next/server";
 import { getDayPredictions } from "@/lib/predict";
 import { MODEL_DISCLAIMER } from "@/lib/types";
+import { appToday } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
-/** Fecha de hoy en formato YYYY-MM-DD (UTC). */
-function hoy(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const date = searchParams.get("date") ?? hoy();
+  const date = searchParams.get("date") ?? appToday();
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json(
