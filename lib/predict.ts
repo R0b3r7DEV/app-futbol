@@ -38,8 +38,12 @@ interface FixtureRow {
  */
 const HOST_TEAMS = new Set(["usa", "united states", "canada", "mexico"]);
 
-/** Ventaja para el anfitrión jugando en casa; 1.0 = neutral (sin ventaja). */
-const HOST_ADVANTAGE = 1.25;
+/**
+ * Ventaja para el anfitrión jugando en casa (1.0 = neutral). Un Mundial en casa
+ * pesa más que una ventaja de campo normal: afición, morale, sin viaje. Por eso
+ * va alta (≈+35% sobre el lambda del local anfitrión).
+ */
+const HOST_ADVANTAGE = 1.35;
 const NEUTRAL_ADVANTAGE = 1.0;
 
 function homeAdvantageFor(homeName: string): number {
