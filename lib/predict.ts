@@ -29,6 +29,23 @@ interface FixtureRow {
   away_team_id: number;
 }
 
+/**
+ * Anfitriones del Mundial 2026: solo ellos juegan realmente en casa. El resto
+ * de partidos son en campo neutral, así que no se les aplica ventaja de campo
+ * (aplicarla a todos sesgaría las predicciones). Nombres como en teams.name.
+ */
+const HOST_TEAMS = new Set(["usa", "united states", "canada", "mexico"]);
+
+/** Ventaja para el anfitrión jugando en casa; 1.0 = neutral (sin ventaja). */
+const HOST_ADVANTAGE = 1.25;
+const NEUTRAL_ADVANTAGE = 1.0;
+
+function homeAdvantageFor(homeName: string): number {
+  return HOST_TEAMS.has(homeName.trim().toLowerCase())
+    ? HOST_ADVANTAGE
+    : NEUTRAL_ADVANTAGE;
+}
+
 /** Carga el catálogo de equipos como mapa id → MatchTeam. */
 async function loadTeams(ids: number[]): Promise<Map<number, MatchTeam>> {
   const db = supabaseAdmin();
@@ -110,6 +127,7 @@ function buildPrediction(
     away: strengthFromStats(stats.get(fx.away_team_id), league),
     league,
     include,
+    homeAdvantage: homeAdvantageFor(home.name),
   });
 
   return { fixtureId: fx.id, kickoff: fx.kickoff, home, away, prediction };

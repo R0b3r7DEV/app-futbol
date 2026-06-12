@@ -63,13 +63,38 @@ export function expectedCount(
 }
 
 /**
+ * Corrección de dependencia de Dixon-Coles para marcadores bajos. El Poisson
+ * independiente infravalora los empates de pocos goles (0-0, 1-1) y sobrevalora
+ * 1-0/0-1. Con rho<0 se ajustan esas cuatro celdas. Devuelve el factor τ.
+ */
+function dixonColesTau(
+  h: number,
+  a: number,
+  lambdaHome: number,
+  lambdaAway: number,
+  rho: number,
+): number {
+  if (h === 0 && a === 0) return 1 - lambdaHome * lambdaAway * rho;
+  if (h === 0 && a === 1) return 1 + lambdaHome * rho;
+  if (h === 1 && a === 0) return 1 + lambdaAway * rho;
+  if (h === 1 && a === 1) return 1 - rho;
+  return 1;
+}
+
+/** Valor por defecto de rho (Dixon-Coles). Negativo ⇒ más empates de pocos goles. */
+export const DEFAULT_RHO = -0.1;
+
+/**
  * Dadas las lambdas de dos equipos en un proceso de conteo, devuelve la
  * probabilidad de que el "local" tenga más, empate, o el "visitante" tenga más.
- * Se construye la matriz producto de dos Poisson truncada a MAX_GOALS.
+ * Se construye la matriz producto de dos Poisson truncada a MAX_GOALS. Con
+ * `rho` ≠ 0 se aplica la corrección de Dixon-Coles (solo tiene sentido para
+ * goles; córners/disparos usan rho=0).
  */
 export function compareCounts(
   lambdaHome: number,
   lambdaAway: number,
+  rho = 0,
 ): { home: number; draw: number; away: number } {
   const homePmf = pmfVector(lambdaHome);
   const awayPmf = pmfVector(lambdaAway);
@@ -80,7 +105,11 @@ export function compareCounts(
 
   for (let h = 0; h <= MAX_GOALS; h++) {
     for (let a = 0; a <= MAX_GOALS; a++) {
-      const p = homePmf[h] * awayPmf[a];
+      let p = homePmf[h] * awayPmf[a];
+      if (rho !== 0) {
+        p *= dixonColesTau(h, a, lambdaHome, lambdaAway, rho);
+        if (p < 0) p = 0; // τ no debería negativizar con rho pequeño; por seguridad
+      }
       if (h > a) pHome += p;
       else if (h === a) pDraw += p;
       else pAway += p;
@@ -137,8 +166,8 @@ export function predictMatch(input: PredictionInput): PredictionResult {
   const incCorners = input.include?.corners ?? true;
   const incShots = input.include?.shots ?? true;
 
-  // --- 1X2 a partir de la matriz de goles (siempre presente) ---
-  const result1x2 = compareCounts(homeGoals, awayGoals);
+  // --- 1X2 a partir de la matriz de goles (con corrección Dixon-Coles) ---
+  const result1x2 = compareCounts(homeGoals, awayGoals, DEFAULT_RHO);
 
   const markets: MarketProbability[] = [
     market("home", result1x2.home),

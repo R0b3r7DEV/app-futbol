@@ -143,12 +143,23 @@ fuerza_defensa = media_goles_en_contra_rival / media_goles_competición
 lambda         = fuerza_ataque · fuerza_defensa · media_goles_competición
 ```
 
-Al local se le aplica una ventaja de campo (≈1.15). Con las lambdas de ambos
-equipos se construye la matriz de marcadores (producto de dos Poisson, truncada a
-10 goles) y de ahí salen P(victoria local), P(empate), P(victoria visitante). El
-mismo procedimiento se aplica a **córners** y **disparos**. Se elige el mercado de
-mayor probabilidad como "apuesta más sólida". Detalle en
-[`lib/poissonModel.ts`](lib/poissonModel.ts).
+Con las lambdas de ambos equipos se construye la matriz de marcadores (producto
+de dos Poisson, truncada a 10 goles) y de ahí salen P(victoria local), P(empate),
+P(victoria visitante). El mismo procedimiento se aplica a **córners** y
+**disparos**. Se elige el mercado de mayor probabilidad como "apuesta más sólida".
+Detalle en [`lib/poissonModel.ts`](lib/poissonModel.ts).
+
+**Ajustes para mejorar la precisión:**
+
+- **Elo reales** de [eloratings.net](https://eloratings.net) ([`lib/teamRatings.ts`](lib/teamRatings.ts)):
+  en la fase de grupos, con pocos partidos jugados, la predicción depende casi por
+  completo del Elo, así que su calidad es la palanca principal.
+- **Ventaja de campo solo para los anfitriones** (USA, Canadá, México). El resto
+  de partidos del Mundial son en campo neutral; aplicar ventaja a todos sesgaría
+  las predicciones. Ver `HOST_TEAMS` en [`lib/predict.ts`](lib/predict.ts).
+- **Corrección de Dixon-Coles** (`DEFAULT_RHO`): el Poisson independiente
+  infravalora los empates de pocos goles (0-0, 1-1), frecuentes en selecciones; la
+  corrección los ajusta y mejora la calibración del 1X2.
 
 ### Capa ML (no implementada, a propósito)
 

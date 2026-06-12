@@ -7,6 +7,7 @@ import {
   compareCounts,
   predictMatch,
   expectedCount,
+  DEFAULT_RHO,
 } from "./poissonModel";
 import type { PredictionInput, TeamStrength } from "./types";
 
@@ -52,6 +53,17 @@ describe("compareCounts", () => {
   it("un lambda mayor implica mayor probabilidad de ganar", () => {
     const r = compareCounts(2.5, 0.8);
     expect(r.home).toBeGreaterThan(r.away);
+  });
+
+  it("con Dixon-Coles (rho<0) sigue sumando 1", () => {
+    const r = compareCounts(1.5, 1.3, DEFAULT_RHO);
+    expect(r.home + r.draw + r.away).toBeCloseTo(1, 6);
+  });
+
+  it("Dixon-Coles (rho<0) aumenta la probabilidad de empate", () => {
+    const sin = compareCounts(1.3, 1.3);
+    const con = compareCounts(1.3, 1.3, DEFAULT_RHO);
+    expect(con.draw).toBeGreaterThan(sin.draw);
   });
 });
 

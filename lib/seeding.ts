@@ -12,8 +12,8 @@
 /** Peso del Elo en la mezcla (resto = datos reales de clasificación). */
 export const BLEND = 0.4;
 
-/** Elo de referencia de una selección "media" del torneo. */
-export const AVG_ELO = 1775;
+/** Elo de referencia (media aprox. del campo de las 48 selecciones, escala eloratings.net). */
+export const AVG_ELO = 1800;
 
 /** Escala que controla cuánto separa el Elo a las selecciones. */
 const ELO_SCALE = 350;
