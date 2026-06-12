@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Tema oscuro del Mundial Predictor. Tokens de Tailwind v4 (@theme genera las
+   utilidades bg-*, text-*, font-*, etc.).
+--------------------------------------------------------------------------- */
+@theme {
+  /* Tipografía con carácter: serif display para titulares, sans para cuerpo. */
+  --font-heading: var(--font-fraunces), Georgia, serif;
+  --font-body: var(--font-sora), system-ui, sans-serif;
+
+  /* Paleta oscura con tinte verde. */
+  --color-base: #050d0a;
+  --color-surface: #0d1815;
+  --color-surface-2: #14221e;
+  --color-border: #1d2f2a;
+  --color-accent: #34d399;
+  --color-accent-strong: #10b981;
+  --color-text: #e7f0ec;
+  --color-muted: #7e948c;
+  --color-bar-track: #182824;
+  --color-bar: #3c5566;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-base);
+  /* Halo verde sutil en la parte superior, cómodo para partidos nocturnos. */
+  background-image: radial-gradient(
+    120% 60% at 50% -10%,
+    rgba(16, 185, 129, 0.12),
+    transparent 60%
+  );
+  background-repeat: no-repeat;
+  color: var(--color-text);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animación suave del desplegable de cada partido. */
+@keyframes desplegar {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animar-despliegue {
+  animation: desplegar 0.22s ease-out;
+}

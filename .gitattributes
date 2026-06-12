@@ -1,0 +1,6 @@
+# Normaliza los saltos de línea a LF en el repositorio (evita ruido entre
+# Windows y otros sistemas). Git los convierte a CRLF en local si hace falta.
+* text=auto eol=lf
+
+# Binarios: no tocar.
+*.png binary
