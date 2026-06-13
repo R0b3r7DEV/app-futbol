@@ -99,6 +99,8 @@ export interface MatchPrediction {
   prediction: PredictionResult;
   /** Notas de ajustes manuales aplicados (bajas, etc.), si los hay. */
   adjustments?: { home?: string | null; away?: string | null };
+  /** Resultado real si el partido ya se jugó (status FT). */
+  result?: { homeGoals: number; awayGoals: number };
 }
 
 /** Respuesta del endpoint del día. */

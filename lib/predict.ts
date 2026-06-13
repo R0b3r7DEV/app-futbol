@@ -28,9 +28,16 @@ import {
 interface FixtureRow {
   id: number;
   kickoff: string;
+  status: string;
   home_team_id: number;
   away_team_id: number;
+  home_goals: number | null;
+  away_goals: number | null;
 }
+
+/** Columnas de fixtures a pedir. */
+const FIXTURE_COLS =
+  "id, kickoff, status, home_team_id, away_team_id, home_goals, away_goals";
 
 /**
  * Anfitriones del Mundial 2026: solo ellos juegan realmente en casa. El resto
@@ -116,6 +123,41 @@ function availableMarkets(rows: TeamStatsRow[]): {
   return { corners, shots };
 }
 
+/**
+ * Quita un partido de los agregados de un equipo (leave-one-out). Sirve para,
+ * en un partido YA JUGADO, predecirlo como lo habría hecho el modelo ANTES (sin
+ * que su propio resultado contamine la fuerza del equipo).
+ */
+function withoutMatch(
+  row: TeamStatsRow | undefined,
+  goalsFor: number,
+  goalsAgainst: number,
+): TeamStatsRow | undefined {
+  if (!row) return row;
+  const mp = row.matches_played;
+  if (mp <= 1) {
+    // Era su único partido: vuelve a "sin datos" (manda el seeding/Elo).
+    return {
+      ...row,
+      matches_played: 0,
+      avg_goals_for: 0,
+      avg_goals_against: 0,
+      avg_corners_for: 0,
+      avg_corners_against: 0,
+      avg_shots_for: 0,
+      avg_shots_against: 0,
+    };
+  }
+  const nmp = mp - 1;
+  const rem = (avg: number, sub: number) => Math.max(0, avg * mp - sub) / nmp;
+  return {
+    ...row,
+    matches_played: nmp,
+    avg_goals_for: rem(row.avg_goals_for, goalsFor),
+    avg_goals_against: rem(row.avg_goals_against, goalsAgainst),
+  };
+}
+
 /** Construye la predicción de un fixture concreto a partir de datos ya cargados. */
 function buildPrediction(
   fx: FixtureRow,
@@ -140,9 +182,20 @@ function buildPrediction(
     lineupAdjustmentFor(away.name, fx.kickoff),
   );
 
+  // En partidos ya jugados, excluimos su propio resultado para reflejar la
+  // predicción PRE-partido (lo que el modelo habría dicho antes de jugarse).
+  const finished =
+    fx.status === "FT" && fx.home_goals != null && fx.away_goals != null;
+  let homeStats = stats.get(fx.home_team_id);
+  let awayStats = stats.get(fx.away_team_id);
+  if (finished) {
+    homeStats = withoutMatch(homeStats, fx.home_goals!, fx.away_goals!);
+    awayStats = withoutMatch(awayStats, fx.away_goals!, fx.home_goals!);
+  }
+
   const prediction = predictMatch({
-    home: adjustStrength(strengthFromStats(stats.get(fx.home_team_id), league), homeAdj),
-    away: adjustStrength(strengthFromStats(stats.get(fx.away_team_id), league), awayAdj),
+    home: adjustStrength(strengthFromStats(homeStats, league), homeAdj),
+    away: adjustStrength(strengthFromStats(awayStats, league), awayAdj),
     league,
     include,
     homeAdvantage: homeAdvantageFor(home.name),
@@ -153,7 +206,21 @@ function buildPrediction(
       ? { home: homeAdj?.note ?? null, away: awayAdj?.note ?? null }
       : undefined;
 
-  return { fixtureId: fx.id, kickoff: fx.kickoff, home, away, prediction, adjustments };
+  // Resultado real si el partido ya finalizó (FT) y tiene goles.
+  const result =
+    fx.status === "FT" && fx.home_goals != null && fx.away_goals != null
+      ? { homeGoals: fx.home_goals, awayGoals: fx.away_goals }
+      : undefined;
+
+  return {
+    fixtureId: fx.id,
+    kickoff: fx.kickoff,
+    home,
+    away,
+    prediction,
+    adjustments,
+    result,
+  };
 }
 
 function unknownTeam(id: number): MatchTeam {
@@ -168,7 +235,7 @@ export async function getFixturePrediction(
   const db = supabaseAdmin();
   const { data, error } = await db
     .from("fixtures")
-    .select("id, kickoff, home_team_id, away_team_id")
+    .select(FIXTURE_COLS)
     .eq("id", fixtureId)
     .maybeSingle();
   if (error) throw error;
@@ -191,7 +258,7 @@ export async function getDayPredictions(date: string): Promise<DayResponse> {
 
   const { data: fxData, error } = await db
     .from("fixtures")
-    .select("id, kickoff, home_team_id, away_team_id")
+    .select(FIXTURE_COLS)
     .eq("league_id", MUNDIAL.leagueId)
     .eq("season", MUNDIAL.season)
     .gte("kickoff", start)
