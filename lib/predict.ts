@@ -23,6 +23,7 @@ import {
   type MatchPrediction,
   type MatchTeam,
   type ModelAccuracy,
+  type EvaluatedMatch,
 } from "./types";
 
 /** Fila de fixtures que necesitamos. */
@@ -249,23 +250,23 @@ export async function getFixturePrediction(
   return buildPrediction(fx, teams, byTeam, league, availableMarkets(rows));
 }
 
-/** ¿Acertó el modelo el 1X2 de un partido jugado? null si no se ha jugado. */
-function acierto1x2(mp: MatchPrediction): boolean | null {
-  if (!mp.result) return null;
-  const { homeGoals: hg, awayGoals: ag } = mp.result;
-  const real = hg > ag ? "home" : hg === ag ? "draw" : "away";
-  const best = (["home", "draw", "away"] as const)
+/** Nº máximo de partidos en el detalle de aciertos (para que la lista no crezca sin fin). */
+const ACCURACY_RECENT_LIMIT = 25;
+
+/** 1X2 más probable del modelo para un partido. */
+function mejor1x2(mp: MatchPrediction): "home" | "draw" | "away" {
+  return (["home", "draw", "away"] as const)
     .map((k) => ({
       k,
       prob: mp.prediction.markets.find((m) => m.key === k)?.prob ?? 0,
     }))
-    .reduce((a, b) => (b.prob > a.prob ? b : a));
-  return best.k === real;
+    .reduce((a, b) => (b.prob > a.prob ? b : a)).k;
 }
 
 /**
  * Aciertos del modelo en el 1X2 sobre TODOS los partidos jugados del torneo,
  * usando la predicción pre-partido (leave-one-out, ya aplicado en buildPrediction).
+ * Incluye el detalle de los partidos más recientes (limitado).
  */
 export async function getModelAccuracy(): Promise<ModelAccuracy> {
   const db = supabaseAdmin();
@@ -278,7 +279,7 @@ export async function getModelAccuracy(): Promise<ModelAccuracy> {
     .not("home_goals", "is", null);
   if (error) throw error;
   const fixtures = (data ?? []) as FixtureRow[];
-  if (fixtures.length === 0) return { hits: 0, total: 0 };
+  if (fixtures.length === 0) return { hits: 0, total: 0, recent: [] };
 
   const teamIds = [
     ...new Set(fixtures.flatMap((f) => [f.home_team_id, f.away_team_id])),
@@ -289,14 +290,33 @@ export async function getModelAccuracy(): Promise<ModelAccuracy> {
   const include = availableMarkets(rows);
 
   let hits = 0;
-  let total = 0;
+  const evaluated: EvaluatedMatch[] = [];
   for (const fx of fixtures) {
-    const ok = acierto1x2(buildPrediction(fx, teams, byTeam, league, include));
-    if (ok === null) continue;
-    total++;
-    if (ok) hits++;
+    const mp = buildPrediction(fx, teams, byTeam, league, include);
+    if (!mp.result) continue;
+    const { homeGoals: hg, awayGoals: ag } = mp.result;
+    const real = hg > ag ? "home" : hg === ag ? "draw" : "away";
+    const predicted = mejor1x2(mp);
+    const hit = predicted === real;
+    if (hit) hits++;
+    evaluated.push({
+      kickoff: mp.kickoff,
+      home: mp.home.name,
+      away: mp.away.name,
+      homeGoals: hg,
+      awayGoals: ag,
+      predicted,
+      hit,
+    });
   }
-  return { hits, total };
+
+  // Más recientes primero, limitado.
+  evaluated.sort((a, b) => b.kickoff.localeCompare(a.kickoff));
+  return {
+    hits,
+    total: evaluated.length,
+    recent: evaluated.slice(0, ACCURACY_RECENT_LIMIT),
+  };
 }
 
 /**

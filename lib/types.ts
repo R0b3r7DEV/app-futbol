@@ -103,10 +103,23 @@ export interface MatchPrediction {
   result?: { homeGoals: number; awayGoals: number };
 }
 
+/** Un partido ya jugado evaluado contra la predicción pre-partido del modelo. */
+export interface EvaluatedMatch {
+  kickoff: string;
+  home: string;
+  away: string;
+  homeGoals: number;
+  awayGoals: number;
+  predicted: "home" | "draw" | "away"; // 1X2 que daba el modelo como más probable
+  hit: boolean;
+}
+
 /** Aciertos del modelo en el 1X2 sobre los partidos ya jugados. */
 export interface ModelAccuracy {
   hits: number;
   total: number;
+  /** Partidos evaluados, más recientes primero (limitado para no crecer sin fin). */
+  recent: EvaluatedMatch[];
 }
 
 /** Respuesta del endpoint del día. */

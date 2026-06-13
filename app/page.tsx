@@ -9,7 +9,7 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
-import type { DayResponse } from "@/lib/types";
+import type { DayResponse, ModelAccuracy } from "@/lib/types";
 import { MOCK_DAY } from "@/lib/mockData";
 import { fechaLarga } from "@/lib/format";
 import { appToday, addDays, dayDiff } from "@/lib/time";
@@ -76,7 +76,7 @@ export default function Page() {
 }
 
 /** Cabecera con eyebrow, título y el badge de aciertos del modelo. */
-function Cabecera({ accuracy }: { accuracy?: { hits: number; total: number } }) {
+function Cabecera({ accuracy }: { accuracy?: ModelAccuracy }) {
   return (
     <header>
       <div className="flex items-start justify-between gap-3">
@@ -92,20 +92,66 @@ function Cabecera({ accuracy }: { accuracy?: { hits: number; total: number } }) 
   );
 }
 
-/** Pill con el % de aciertos 1X2 del modelo en los partidos jugados. */
-function BadgeAciertos({
-  accuracy,
-}: {
-  accuracy?: { hits: number; total: number };
-}) {
+/** Pill con el % de aciertos 1X2; al tocarlo despliega el detalle por partido. */
+function BadgeAciertos({ accuracy }: { accuracy?: ModelAccuracy }) {
+  const [abierto, setAbierto] = useState(false);
   if (!accuracy || accuracy.total === 0) return null;
   const p = Math.round((accuracy.hits / accuracy.total) * 100);
+
   return (
-    <div className="shrink-0 rounded-full border border-accent/40 bg-surface/70 px-3 py-1.5 text-center">
-      <p className="text-base font-bold leading-none text-accent">{p}%</p>
-      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-muted">
-        {accuracy.hits}/{accuracy.total} aciertos
-      </p>
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        aria-expanded={abierto}
+        className="flex items-baseline gap-1.5 rounded-full bg-accent px-3 py-1.5 font-bold text-[#04130c] shadow-lg shadow-black/40 transition-transform hover:scale-[1.03]"
+      >
+        <span className="text-sm leading-none">{p}%</span>
+        <span className="text-[11px] font-semibold opacity-80">
+          {accuracy.hits}/{accuracy.total}
+        </span>
+      </button>
+
+      {abierto && (
+        <>
+          {/* Capa para cerrar al tocar fuera. */}
+          <div
+            className="fixed inset-0 z-20"
+            onClick={() => setAbierto(false)}
+          />
+          <div className="absolute right-0 z-30 mt-2 max-h-80 w-72 overflow-y-auto rounded-xl border border-accent/30 bg-[#0a1714] p-2 shadow-2xl shadow-black/70 ring-1 ring-black/40">
+            <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
+              Aciertos del modelo · {accuracy.hits}/{accuracy.total} ({p}%)
+            </p>
+            <ul className="flex flex-col">
+              {accuracy.recent.map((m, i) => {
+                const eti =
+                  m.predicted === "home"
+                    ? m.home
+                    : m.predicted === "away"
+                      ? m.away
+                      : "Empate";
+                return (
+                  <li
+                    key={i}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-white/5"
+                  >
+                    <span
+                      className={`shrink-0 text-sm font-bold ${m.hit ? "text-accent" : "text-red-400"}`}
+                    >
+                      {m.hit ? "✓" : "✗"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-text">
+                      {m.home} <span className="font-semibold">{m.homeGoals}-{m.awayGoals}</span> {m.away}
+                    </span>
+                    <span className="shrink-0 text-muted">{eti}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>
+      )}
     </div>
   );
 }

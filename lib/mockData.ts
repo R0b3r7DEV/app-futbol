@@ -97,6 +97,6 @@ export const MOCK_DAY: DayResponse = {
   date: "2026-06-11",
   matches: MOCK_MATCHES,
   bestBetOfDay: MOCK_MATCHES[0],
-  accuracy: { hits: 0, total: 0 },
+  accuracy: { hits: 0, total: 0, recent: [] },
   disclaimer: MODEL_DISCLAIMER,
 };
