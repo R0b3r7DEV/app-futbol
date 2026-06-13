@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import type { MatchPrediction } from "@/lib/types";
-import { hora, pct } from "@/lib/format";
+import { hora, pct, interpretarResultado } from "@/lib/format";
 import { MarketBars } from "./MarketBars";
 
 interface Props {
@@ -63,6 +63,10 @@ export function MatchCard({ match, destacada = false }: Props) {
       {abierta && (
         <div className="mt-5 border-t border-border pt-5">
           <MarketBars prediction={prediction} />
+          <p className="mt-4 rounded-xl bg-surface-2/60 p-3 text-xs leading-relaxed text-muted">
+            <span className="mr-1 font-semibold text-accent/90">Cómo leerlo:</span>
+            {interpretarResultado(prediction, home.name, away.name)}
+          </p>
         </div>
       )}
 
