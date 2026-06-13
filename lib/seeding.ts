@@ -15,8 +15,13 @@ export const BLEND = 0.4;
 /** Elo de referencia (media aprox. del campo de las 48 selecciones, escala eloratings.net). */
 export const AVG_ELO = 1800;
 
-/** Escala que controla cuánto separa el Elo a las selecciones. */
-const ELO_SCALE = 350;
+/**
+ * Escala que controla cuánto separa el Elo a las selecciones: cuanto MENOR, más
+ * se diferencian favoritos y débiles. Calibrado para que los partidos muy
+ * desiguales (favorito claro vs colista) reflejen bien la diferencia, en línea
+ * con el mercado y la expectativa Elo, sin inflar los partidos parejos.
+ */
+const ELO_SCALE = 200;
 
 /** Sensibilidad del ataque/defensa al índice de fuerza derivado del Elo. */
 const ATTACK_SENSITIVITY = 0.45;
