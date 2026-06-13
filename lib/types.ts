@@ -103,11 +103,19 @@ export interface MatchPrediction {
   result?: { homeGoals: number; awayGoals: number };
 }
 
+/** Aciertos del modelo en el 1X2 sobre los partidos ya jugados. */
+export interface ModelAccuracy {
+  hits: number;
+  total: number;
+}
+
 /** Respuesta del endpoint del día. */
 export interface DayResponse {
   date: string;                 // YYYY-MM-DD
   matches: MatchPrediction[];   // ordenados de mayor a menor confianza
   bestBetOfDay: MatchPrediction | null;
+  /** Acierto global del modelo (todos los partidos FT del torneo). */
+  accuracy: ModelAccuracy;
   disclaimer: string;
 }
 

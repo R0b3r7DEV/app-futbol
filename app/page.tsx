@@ -46,7 +46,7 @@ export default function Page() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-10 pt-8">
-      <Cabecera />
+      <Cabecera accuracy={data?.accuracy} />
 
       <SelectorDia
         date={date}
@@ -75,17 +75,38 @@ export default function Page() {
   );
 }
 
-/** Cabecera con eyebrow y título. */
-function Cabecera() {
+/** Cabecera con eyebrow, título y el badge de aciertos del modelo. */
+function Cabecera({ accuracy }: { accuracy?: { hits: number; total: number } }) {
   return (
     <header>
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-        Copa del Mundo 2026
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+          Copa del Mundo 2026
+        </p>
+        <BadgeAciertos accuracy={accuracy} />
+      </div>
       <h1 className="mt-1 font-heading text-4xl font-bold leading-none text-text">
         Predicciones
       </h1>
     </header>
+  );
+}
+
+/** Pill con el % de aciertos 1X2 del modelo en los partidos jugados. */
+function BadgeAciertos({
+  accuracy,
+}: {
+  accuracy?: { hits: number; total: number };
+}) {
+  if (!accuracy || accuracy.total === 0) return null;
+  const p = Math.round((accuracy.hits / accuracy.total) * 100);
+  return (
+    <div className="shrink-0 rounded-full border border-accent/40 bg-surface/70 px-3 py-1.5 text-center">
+      <p className="text-base font-bold leading-none text-accent">{p}%</p>
+      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-muted">
+        {accuracy.hits}/{accuracy.total} aciertos
+      </p>
+    </div>
   );
 }
 
